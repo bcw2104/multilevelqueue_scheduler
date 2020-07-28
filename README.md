@@ -23,8 +23,8 @@
     - Multi-level Queue를 기반으로 하는 스케줄러.
     - pthread_t thread[4] : 4개의 스케줄러 thread가 존재 (Queue 내부 스케줄러 3개 + Queue간 스케줄러 1개)
     - 개별Queue는 3개가 존재하며 각각 class 1,2,3을 가진다. 각 Queue에는 스케줄러가 존재한다.
-    - Thread간 공유 Queue인 ready queue가 존재하며 각 Queue의 내부 스케줄러가 Process를 스케줄링하여 ready큐에 적재하면 Queue간 스케줄러가 이를 스케줄링 하는 방식이다. 
-        – flag 활용
+    - Thread간 공유 Queue인 ready queue가 존재하며 각 Queue의 내부 스케줄러가 Process를 스케줄링하여 ready큐에 적재하면 
+      Queue간 스케줄러가 이를 스케줄링 하는 방식이다. –> flag 활용
 
 ## Queue간 스케줄러 – thread[0] -> Round robin
     3개의 Queue에서 담겨지는 ready큐에 대해서 round robin 스케줄링을 진행하며 Process의 Class별로 시간할당량이 달라진다.
