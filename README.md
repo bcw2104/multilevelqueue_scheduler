@@ -2,7 +2,8 @@
 
 
 ## 개요
-    Multi-level Queue기법에서 Queue간 스케줄링을 Round Robin이지만 Queue Class사이의 약간의 우선순위 개념으로 시간할당량을 우선순위가 높은 Queue Class일수록 더 크게 주는 스케줄링 기법을 구현
+    Multi-level Queue기법에서 Queue간 스케줄링을 Round Robin이지만 Queue Class사이의 약간의 우선순위 개념으로 시간할당량을 
+    우선순위가 높은 Queue Class일수록 더 크게 주는 스케줄링 기법을 구현
 
 ## 구성 파일
     tools.h : 구조체 Queue, Node, Process에 대한 정의와 사용 함수 구현
@@ -67,7 +68,7 @@
         Queue간 스케줄러, Queue 내부 스케줄러의 동기화, flag값에 대한 동기화
         동작 -> flag의 동작도 함께 작성
             1. thread[0]이 생성되고 sem_wait(&full)에 도달하여 block된다. -> full 초기값 = 0 
-            2. Queue 내부 스케줄러는 내부동작 수행 후 다른 Queue 내부 스케줄러의 flag값을 확인하고 만약 모두 완료되었다면(flag[others] = 0 or -1) sem_post(&full)를 통해 full의 값을 증가시킨다.
+            2. Queue 내부 스케줄러는 내부동작 수행 후 다른 Queue 내부 스케줄러의 flag값을 확인하고 만약 모두 완료되었다면(flag[others] = 0 or -1) sem_post(&full)를 통해 full의 값  을 증가시킨다.
             3. Queue간 스케줄러가 sem_wait(&full)를 통과해 block이 해제되고 스케줄링을 수행한다.
             4. Queue간 스케줄러가 1개의 프로세스를 처리하면 새로운 프로세스를 받아오기 위해 처리된 프로세스가 속한 class의 flag값을 1로 변경, sem_post(&empty)후 sem_wait(&full)로 block상태로 전환된다.
                 - 단, flag값이 -1이라면 flag값이 -1이 아닌 다른 Class중 순위가 높은 Class의 flag값을 1로 변경.
