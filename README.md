@@ -27,9 +27,9 @@
         – flag 활용
 
 ## Queue간 스케줄러 – thread[0] -> Round robin
-    - 3개의 Queue에서 담겨지는 ready큐에 대해서 round robin 스케줄링을 진행하며 Process의 Class별로 시간할당량이 달라진다.
+    3개의 Queue에서 담겨지는 ready큐에 대해서 round robin 스케줄링을 진행하며 Process의 Class별로 시간할당량이 달라진다.
         - Process class별 시간할당량 : class1 = 7 , class2 = 5 , class3 = 3
-    - 만약 Queue1, Queue2, Queue3중 완료되는 Queue가 존재할 시 해당 자리에 다른 Queue중 높은 class우선순위를 가진 Queue의 Process가 적재된다. 
+    만약 Queue1, Queue2, Queue3중 완료되는 Queue가 존재할 시 해당 자리에 다른 Queue중 높은 class우선순위를 가진 Queue의 Process가 적재된다. 
         - Class 값이 낮을수록 우선순위가 높음
         - Ex) Queue2의 Process가 모두 스케줄링 되어 thread[2]가 종료되면 빈 ready queue의 자리에 Queue1의 스케줄러가 Process를 적재한다.
 
@@ -39,46 +39,41 @@
     - thread[1] -> Queue1 (class 1) : 우선순위 스케줄링
     - thread[2] -> Queue2 (class 2) : round robin 스케줄링 (시간할당량 = 5)
     - thread[3] -> Queue3 (class 3) : SJF 스케줄링
-        - 더 이상 Queue의 Process가 존재하지 않으면 thread를 종료한다. 
+    - 더 이상 Queue의 Process가 존재하지 않으면 thread를 종료한다. 
 
 ## 동기화 
-    ### flag 
-        - 3개의 Queue 내부 스케줄러를 제어할 정수형 배열 flag[3] 존재 -> 초기값 = 1
-            - flag[0] : thread[1], flag[1] : thread[2], flag[2] : thread[3]  
-            - Queue 내부 스케줄러는 자기 자신의 flag값만 변경가능
-            - Queue간 스케줄러는 모든 flag값 변경가능 
-        - 전역 변수인 3개의 flag사이의 동기화가 필요 -> Semaphore 활용
-        - flag 값
-            1 : 해당 Queue 내부 스케줄러 block 해제 
-            0 : 해당 Queue 내부 스케줄러 block 
-            -1 : 해당 Queue가 비어있고 Queue 내부 스케줄러의 종료를 알림
-            동작 – thread[1]로 가정 
-            flag[0] = 1이면 while(!flag[0])를 통과
-            - Queue가 비어 있다면 flag[0] = -1로 변경 후 thread[1] 종료
-            - Queue가 비어 있지 않다면 내부 동작 수행 후 flag[0] = 0로 변경
-                - 다음 반복 때 while(!flag[0])을 통과하지 못한 채 block
+### flag 
+    3개의 Queue 내부 스케줄러를 제어할 정수형 배열 flag[3] 존재 -> 초기값 = 1
+        - flag[0] : thread[1], flag[1] : thread[2], flag[2] : thread[3]  
+        - Queue 내부 스케줄러는 자기 자신의 flag값만 변경가능
+        - Queue간 스케줄러는 모든 flag값 변경가능 
+    전역 변수인 3개의 flag사이의 동기화가 필요 -> Semaphore 활용
+    flag 값
+        1 : 해당 Queue 내부 스케줄러 block 해제 
+        0 : 해당 Queue 내부 스케줄러 block 
+        -1 : 해당 Queue가 비어있고 Queue 내부 스케줄러의 종료를 알림
 
-    ### Semaphore 
-        full, empty 두 개의 Semaphore가 존재
-        - empty 
-            - 공유자원인 ready queue, flag에 대한 접근 제어를 위한 Queue 내부 스케줄러 사이의 동기화 -> 초기값=1
-            - 동작 -> flag의 동작도 함께 작성
-                1. Queue 내부 스케줄러 thread[1], thread[2], thread[3] 중 먼저 접근한 thread가 while(!flag[flag_num]), sem_wait(&empty)를 통과하고 공유자원인 ready queue를 점유한다. 이때 다른 두 개의 thread들은 sem_wait(&empty)에서 block된다.
-                2. 먼저 접근한 thread가 스케줄링 진행하고 자신의 flag값을 변경시킨 후 다른 Queue 내부 스케줄러의 flag값을 확인한다. -> empty로 인해 확인도중 다른 Queue 내부 스케줄러가 자신의 flag값을 변경하지 못한다.
-                3. 만약 다른 Queue 내부 스케줄러의 flag값중 하나라도 1이면 sem_post(&empty)를 통해 다른 Queue 내부 스케줄러의 block을 해제한다.
+### Semaphore 
+    full, empty 두 개의 Semaphore가 존재
+    1. empty 
+        공유자원인 ready queue, flag에 대한 접근 제어를 위한 Queue 내부 스케줄러 사이의 동기화 -> 초기값=1
+        동작 -> flag의 동작도 함께 작성
+            1. Queue 내부 스케줄러 thread[1], thread[2], thread[3] 중 먼저 접근한 thread가 while(!flag[flag_num]), sem_wait(&empty)를 통과하고 공유자원인 ready queue를 점유한다. 이때 다른 두 개의 thread들은 sem_wait(&empty)에서 block된다.
+            2. 먼저 접근한 thread가 스케줄링 진행하고 자신의 flag값을 변경시킨 후 다른 Queue 내부 스케줄러의 flag값을 확인한다. -> empty로 인해 확인도중 다른 Queue 내부 스케줄러가 자신의 flag값을 변경하지 못한다.
+            3. 만약 다른 Queue 내부 스케줄러의 flag값중 하나라도 1이면 sem_post(&empty)를 통해 다른 Queue 내부 스케줄러의 block을 해제한다.
 
 
-        - full 
-            - Queue간 스케줄러, Queue 내부 스케줄러의 동기화, flag값에 대한 동기화
-            - 동작 -> flag의 동작도 함께 작성
-                1. thread[0]이 생성되고 sem_wait(&full)에 도달하여 block된다. -> full 초기값 = 0 
-                2. Queue 내부 스케줄러는 내부동작 수행 후 다른 Queue 내부 스케줄러의 flag값을 확인하고 만약 모두 완료되었다면(flag[others] = 0 or -1) sem_post(&full)를 통해 full의 값을 증가시킨다.
-                3. Queue간 스케줄러가 sem_wait(&full)를 통과해 block이 해제되고 스케줄링을 수행한다.
-                4. Queue간 스케줄러가 1개의 프로세스를 처리하면 새로운 프로세스를 받아오기 위해 처리된 프로세스가 속한 class의 flag값을 1로 변경, sem_post(&empty)후 sem_wait(&full)로 block상태로 전환된다.
-                    - 단, flag값이 -1이라면 flag값이 -1이 아닌 다른 Class중 순위가 높은 Class의 flag값을 1로 변경.
-                5. while(!flag[flag_num])에서 block되어있던 해당 class의 Queue 내부 스케줄러가 while(!flag[flag_num]), sem_wait(&empty)를 통과해 내부 동작을 수행 후 선정된 Process를 ready queue에 적재하고 다른 Queue 내부 스케줄러의 flag값을 확인하고 만약 모두 완료되었다면(flag[others] = 0 or -1) sem_post(&full)를 통해 full의 값을 증가시킨다. 
-                6. Queue간 스케줄러가 block이 해제되어 다음 작업을 수행한다.
-                7. 모든 Queue 내부 스케줄러가 종료될 때까지 4,5,6번을 반복한다.
+    2. full 
+        Queue간 스케줄러, Queue 내부 스케줄러의 동기화, flag값에 대한 동기화
+        동작 -> flag의 동작도 함께 작성
+            1. thread[0]이 생성되고 sem_wait(&full)에 도달하여 block된다. -> full 초기값 = 0 
+            2. Queue 내부 스케줄러는 내부동작 수행 후 다른 Queue 내부 스케줄러의 flag값을 확인하고 만약 모두 완료되었다면(flag[others] = 0 or -1) sem_post(&full)를 통해 full의 값을 증가시킨다.
+            3. Queue간 스케줄러가 sem_wait(&full)를 통과해 block이 해제되고 스케줄링을 수행한다.
+            4. Queue간 스케줄러가 1개의 프로세스를 처리하면 새로운 프로세스를 받아오기 위해 처리된 프로세스가 속한 class의 flag값을 1로 변경, sem_post(&empty)후 sem_wait(&full)로 block상태로 전환된다.
+                - 단, flag값이 -1이라면 flag값이 -1이 아닌 다른 Class중 순위가 높은 Class의 flag값을 1로 변경.
+            5. while(!flag[flag_num])에서 block되어있던 해당 class의 Queue 내부 스케줄러가 while(!flag[flag_num]), sem_wait(&empty)를 통과해 내부 동작을 수행 후 선정된 Process를 ready queue에 적재하고 다른 Queue 내부 스케줄러의 flag값을 확인하고 만약 모두 완료되었다면(flag[others] = 0 or -1) sem_post(&full)를 통해 full의 값을 증가시킨다. 
+            6. Queue간 스케줄러가 block이 해제되어 다음 작업을 수행한다.
+            7. 모든 Queue 내부 스케줄러가 종료될 때까지 4,5,6번을 반복한다.
 
 ## 전체 동작 – 정리
     1. Input.txt로부터 프로세스를 정보를 읽어와 프로세스 Class 별로 Queue1, Queue2, Queue3에 저장. 
